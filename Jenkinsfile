@@ -2,7 +2,6 @@ pipeline {
     agent any
 
     parameters {
-
         choice(
             name: 'environment',
             choices: ['dev', 'qa', 'prod'],
@@ -21,31 +20,16 @@ pipeline {
         stage('Checkout Code') {
             steps {
 
-                script {
-
-                    def branchName = ""
-
-                    if (params.environment == 'dev') {
-                        branchName = "development"
-                    }
-                    else if (params.environment == 'qa') {
-                        branchName = "qa"
-                    }
-                    else {
-                        branchName = "main"
-                    }
-
-                    git branch: branchName,
-                        credentialsId: 'github-cred',
-                        url: 'https://github.com/premgowda7/springboot-swagger-demo.git'
-                }
+                git branch: 'main',
+                    credentialsId: 'git-prem',
+                    url: 'https://github.com/premgowda7/springboot-swagger-demo.git'
             }
         }
 
         stage('Build Application') {
             steps {
 
-                sh "echo Building for ${params.environment}"
+                sh "echo Building application for ${params.environment}"
 
                 sh 'mvn clean package'
             }
@@ -64,7 +48,7 @@ pipeline {
         stage('Verify Application') {
             steps {
 
-                sh 'sleep 15'
+                sh 'sleep 30'
 
                 sh 'curl http://localhost:8090'
             }
