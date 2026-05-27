@@ -1,36 +1,72 @@
-pipeline{
+pipeline {
     agent any
-    parameters {
-        // Define parameters as they are defined in the Jenkins job configuration
-        choice(name: 'environment', choices: ['dev', 'qa', 'prod'], description: 'Select the environment to deploy')
 
+    parameters {
+
+        choice(
+            name: 'environment',
+            choices: ['dev', 'qa', 'prod'],
+            description: 'Select environment'
+        )
     }
 
-    stages{
-      stage('clean_workspace') {
-        steps {
-                // You can choose to clean workspace before build as follows
+    stages {
+
+        stage('Clean Workspace') {
+            steps {
                 cleanWs deleteDirs: true, notFailBuild: true
-                checkout scm
-               
             }
         }
-        stage('build'){
-            steps{
-                // checkout to branch based on environment parameter
+
+        stage('Checkout Code') {
+            steps {
+
                 script {
+
+                    def branchName = ""
+
                     if (params.environment == 'dev') {
-                        sh 'git checkout development'
-                    } else if (params.environment == 'qa') {
-                        sh 'git checkout qa'
+                        branchName = "development"
                     }
-                    //close if default branch is main or master
+                    else if (params.environment == 'qa') {
+                        branchName = "qa"
+                    }
                     else {
-                        sh 'git checkout main'
+                        branchName = "main"
                     }
+
+                    git branch: branchName,
+                        credentialsId: 'github-cred',
+                        url: 'https://github.com/premgowda7/springboot-swagger-demo.git'
                 }
-               sh "echo 'Building the application for environment: ${params.environment}'"
-               sh 'mvn clean package'
+            }
+        }
+
+        stage('Build Application') {
+            steps {
+
+                sh "echo Building for ${params.environment}"
+
+                sh 'mvn clean package'
+            }
+        }
+
+        stage('Run Application') {
+            steps {
+
+                sh '''
+                pkill -f java || true
+                nohup java -jar target/*.jar > app.log 2>&1 &
+                '''
+            }
+        }
+
+        stage('Verify Application') {
+            steps {
+
+                sh 'sleep 15'
+
+                sh 'curl http://localhost:8090'
             }
         }
     }
